@@ -8,5 +8,5 @@ dist/**
 !webpack.config.js
 !src/**
 .DS_Store
-environments/environment.ts
+src/environments/environment.ts
 .vscode/**
