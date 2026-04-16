@@ -20,9 +20,9 @@ export class Config {
         // }
         
         if(location.hostname.includes('dev')){
-            return "https://www-dev.usanpn.org";
+            return "https://services.usanpn.org";
         }else{
-            return "https://www.usanpn.org";
+            return "https://services.usanpn.org";
         }
     }
 
@@ -52,5 +52,9 @@ export class Config {
 
     public getPopFgdcEndpoint() {
         return '/popservices/pop/fgdc';
+    }
+
+    public getTinybirdHost() {
+        return "https://api.europe-west2.gcp.tinybird.co";
     }
 }

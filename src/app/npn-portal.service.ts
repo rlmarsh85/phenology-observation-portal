@@ -9,6 +9,8 @@ import {Dataset} from './integrated-datasets/dataset'
 import {AncillaryData} from "./ancillary-data/ancillaryData";
 import {Config} from "./config.service";
 import { OutputFieldsService } from './output-fields/output-fields.service';
+import { environment } from '../environments/environment'
+import { map } from 'rxjs/operators';
 
 @Injectable()
 export class NpnPortalService {
@@ -293,31 +295,21 @@ export class NpnPortalService {
         'Content-Type':  'application/json'
       })
     };
-    var data = JSON.stringify({
-      downloadType: this.downloadType,
-      start_date: this.startDate,
-      end_date: this.endDate,
-      state: this.getSelectedStates().map(function(s) { return s.state_code;}),
-      bottom_left_x1: this.extent.bottom_left_x1,
-      bottom_left_y1: this.extent.bottom_left_y1,
-      upper_right_x2: this.extent.upper_right_x2,
-      upper_right_y2: this.extent.upper_right_y2,
-      species_id: this.getSelectedSpecies().map(function(s) { return s.species_id; }),
-      phenophase_category: this.getSelectedPhenophases().map(function(p) { return p.phenophase_category; }),
-      dataset_ids: this.getSelectedDatasets().map((dataset) => dataset.dataset_id),
-      network: this.getSelectedPartnerGroups().map(function(p) { return p.network_name; }),
-      stations: this.stations,
-      is_magnitude: (this.downloadType == 'magnitude') ? 1 : 0
-    });
+    
+    const tinybirdToken = environment.TB_TOKEN;
+    const tinybirdHost = this.config.getTinybirdHost();
+    const url = `${tinybirdHost}/v0/pipes/status_search.json?&token=${tinybirdToken}&count_only=true`;
 
-    return this.http.post(this.config.getNpnPortalServerUrl() + '/npn_portal/observations/getObservationsCount.json', data, httpOptions);
+    return this.http.get(url, httpOptions).pipe(map((response: any) => {
+      return { obsCount: response.data[0].total_records };
+    }));
   }
 
   checkPopDownloadStatus(zipFileName: string) {
     console.log("checking download status");
     const options = { params: new HttpParams().set('zipFileName', zipFileName) };
     this.http.get(this.config.getPopServerUrl() + this.config.getPopDownloadStatusEndpoint(), options)
-    .subscribe((res) => {
+    .subscribe((res: any) => {
       if(res['file_complete']) {
         console.log("downloading zipfile");
         this.downloadStatus = 'complete';
@@ -370,7 +362,7 @@ export class NpnPortalService {
 
     //always use https on dev/prod servers, but not necessarily locally
     this.http.post(this.config.getPopServerUrl() + this.config.getPopDownloadEndpoint(), data, httpOptions)
-        .subscribe((res) => {
+        .subscribe((res: any) => {
           if(res['zip_file_name'] != null) {
             this.checkPopDownloadStatus(res['zip_file_name'])
           }

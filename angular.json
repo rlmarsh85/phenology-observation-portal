@@ -124,6 +124,10 @@
           }
         }
       }
-    }},
-  "defaultProject": "phenology-observation-portal"
+    }
+  },
+  "defaultProject": "phenology-observation-portal",
+  "cli": {
+    "analytics": false
+  }
 }
