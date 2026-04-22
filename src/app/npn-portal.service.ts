@@ -305,21 +305,21 @@ export class NpnPortalService {
     }));
   }
 
-  checkPopDownloadStatus(zipFileName: string) {
+  checkPopDownloadStatus(fileName: string) {
+
     console.log("checking download status");
-    const options = { params: new HttpParams().set('zipFileName', zipFileName) };
-    this.http.get(this.config.getPopServerUrl() + this.config.getPopDownloadStatusEndpoint(), options)
-    .subscribe((res: any) => {
-      if(res['file_complete']) {
+
+    this.http.head(this.config.getCloudFrontURL() + fileName)
+      .subscribe(() => {
         console.log("downloading zipfile");
         this.downloadStatus = 'complete';
-        window.location.assign(res['download_path']);
-      } else {
-        setTimeout(()=>{
-          this.checkPopDownloadStatus(zipFileName);
+        window.location.assign(this.config.getCloudFrontURL() + fileName);
+      }, (error) => {
+        console.log("file not ready yet...");
+        setTimeout(() => {
+          this.checkPopDownloadStatus(fileName);
         }, 5000);
-      }
-    })
+      });
   }
 
   //called when download is pressed //////////////////////////////////////
@@ -360,11 +360,15 @@ export class NpnPortalService {
       stations: this.stations
     });
 
+    console.log("Making download request: "  + this.config.getLambdaEndpoint());
+
     //always use https on dev/prod servers, but not necessarily locally
-    this.http.post(this.config.getPopServerUrl() + this.config.getPopDownloadEndpoint(), data, httpOptions)
+    this.http.post(this.config.getLambdaEndpoint(), data, httpOptions)
         .subscribe((res: any) => {
-          if(res['zip_file_name'] != null) {
-            this.checkPopDownloadStatus(res['zip_file_name'])
+          console.log("Got response from lambda: ");
+          console.log(res);
+          if(res['fileName'] != null) {
+            this.checkPopDownloadStatus(res['fileName'])
           }
         }, (err) => {
           this.downloadStatus = 'error';

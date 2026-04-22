@@ -54,7 +54,15 @@ export class Config {
         return '/popservices/pop/fgdc';
     }
 
+    public getLambdaEndpoint(){
+        return "https://lh77ovfokwpda3m5sxdeismafq0ijkea.lambda-url.eu-central-1.on.aws"
+    }
+
     public getTinybirdHost() {
         return "https://api.europe-west2.gcp.tinybird.co";
+    }
+
+    public getCloudFrontURL(){
+        return "https://d25lm3wq3t4rxd.cloudfront.net/";
     }
 }
