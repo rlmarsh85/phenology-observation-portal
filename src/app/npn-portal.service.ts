@@ -296,13 +296,15 @@ export class NpnPortalService {
       })
     };
     
-    const tinybirdToken = environment.TB_TOKEN;
-    const tinybirdHost = this.config.getTinybirdHost();
-    const url = `${tinybirdHost}/v0/pipes/status_search.json?&token=${tinybirdToken}&count_only=true`;
 
-    return this.http.get(url, httpOptions).pipe(map((response: any) => {
-      return { obsCount: response.data[0].total_records };
-    }));
+    // const tinybirdHost = this.config.getTinybirdHost();
+    // const url = `${tinybirdHost}/v0/pipes/status_search.json?&token=${tinybirdToken}&count_only=true`;
+
+    // return this.http.get(url, httpOptions).pipe(map((response: any) => {
+    //   return { obsCount: response.data[0].total_records };
+    // }));
+
+    return 5000000;
   }
 
   checkPopDownloadStatus(fileName: string) {
