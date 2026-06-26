@@ -10,6 +10,7 @@ import {AncillaryData} from "./ancillary-data/ancillaryData";
 import {Config} from "./config.service";
 import { OutputFieldsService } from './output-fields/output-fields.service';
 import { environment } from '../environments/environment'
+import { of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Injectable()
@@ -291,36 +292,34 @@ export class NpnPortalService {
 
   getObservationCount() {
     const httpOptions = {
-      headers: new HttpHeaders({
-        'Content-Type':  'application/json'
-      })
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     };
-    
-
-    // const tinybirdHost = this.config.getTinybirdHost();
-    // const url = `${tinybirdHost}/v0/pipes/status_search.json?&token=${tinybirdToken}&count_only=true`;
-
-    // return this.http.get(url, httpOptions).pipe(map((response: any) => {
-    //   return { obsCount: response.data[0].total_records };
-    // }));
-
-    return 5000000;
+    // const url = this.config.getObservationCountUrl();
+    // const body = this.buildRequestPayload();
+    // return this.http.post(url, body, httpOptions)
+    //   .pipe(map((r: any) => ({ obsCount: r.total_records })));
+    return of({ obsCount: 50000000 }); // mock until the count endpoint exists
   }
 
-  checkPopDownloadStatus(fileName: string) {
-
-    console.log("checking download status");
-
-    this.http.head(this.config.getCloudFrontURL() + fileName)
-      .subscribe(() => {
-        console.log("downloading zipfile");
-        this.downloadStatus = 'complete';
-        window.location.assign(this.config.getCloudFrontURL() + fileName);
-      }, (error) => {
-        console.log("file not ready yet...");
-        setTimeout(() => {
-          this.checkPopDownloadStatus(fileName);
-        }, 5000);
+  pollJobStatus(jobId: string, startTime: number): void {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= 935000) {
+      this.downloadStatus = 'error';
+      return;
+    }
+    this.http.get<any>(this.config.getStatusEndpoint() + '/' + jobId)
+      .subscribe((res: any) => {
+        if (res.status === 'complete') {
+          this.downloadStatus = 'complete';
+          window.location.assign(res.download_url);
+        } else if (res.status === 'failed') {
+          this.downloadStatus = 'error';
+        } else {
+          const nextDelay = elapsed < 35000 ? 10000 : 120000;
+          setTimeout(() => this.pollJobStatus(jobId, startTime), nextDelay);
+        }
+      }, () => {
+        this.downloadStatus = 'error';
       });
   }
 
@@ -328,14 +327,16 @@ export class NpnPortalService {
   downloadStatus: string = 'testing';
   download() {
     this.downloadStatus = "downloading";
-    
+
+    const isRaw = this.downloadType === 'raw';
+
     const httpOptions = {
       headers: new HttpHeaders({
         'Content-Type':  'application/json'
       })
     };
 
-    var data = JSON.stringify({
+    const payload: any = {
       downloadType: this.getReportType(),
       startDate: this.startDate,
       endDate: this.endDate,
@@ -353,24 +354,33 @@ export class NpnPortalService {
       phenophaseCategories: this.getSelectedPhenophases().map((phenophase) => phenophase.phenophase_category),
       partnerGroups: this.getSelectedPartnerGroups().map((partnerGroup) => partnerGroup.network_name),
       network_ids: this.getSelectedPartnerGroups().map((partnerGroup) => partnerGroup.network_id),
-      additionalFields: this._outputFieldsService.getSelectedOptionalFields().map((optionalField) => optionalField.machine_name),
-      additionalFieldsDisplay: this._outputFieldsService.getSelectedOptionalFields().map((optionalField) => optionalField.field_name),
       dataset_ids: this.getSelectedDatasets().map((dataset) => dataset.dataset_id),
       integrated_datasets: this.getSelectedDatasets().map((dataset) => dataset.dataset_name),
       ancillary_data: this.getSelectedDatasheets().map((datasheet) => datasheet.name),
       qualityFlags: this._outputFieldsService.dataQualityChecksSelected() ? null : 'ignored',
       stations: this.stations
-    });
+    };
+
+    if (isRaw) {
+      Object.assign(payload, this._outputFieldsService.getSelectedIncludeFlags());
+    } else {
+      payload.additionalFields = this._outputFieldsService.getSelectedOptionalFields().map((f) => f.machine_name);
+      payload.additionalFieldsDisplay = this._outputFieldsService.getSelectedOptionalFields().map((f) => f.field_name);
+    }
+
+    const data = JSON.stringify(payload);
 
     console.log("Making download request: "  + this.config.getLambdaEndpoint());
 
-    //always use https on dev/prod servers, but not necessarily locally
     this.http.post(this.config.getLambdaEndpoint(), data, httpOptions)
         .subscribe((res: any) => {
           console.log("Got response from lambda: ");
           console.log(res);
-          if(res['fileName'] != null) {
-            this.checkPopDownloadStatus(res['fileName'])
+          if (res.job_id != null) {
+            const startTime = Date.now();
+            setTimeout(() => this.pollJobStatus(res.job_id, startTime), 5000);
+          } else {
+            this.downloadStatus = 'error';
           }
         }, (err) => {
           this.downloadStatus = 'error';

@@ -1,43 +1,21 @@
 import {Injectable} from '@angular/core';
+import { environment } from '../environments/environment';
 
 @Injectable()
 export class Config {
 
     public getPopServerUrl() {
-        // if(location.hostname.includes('local')){
-        //     return location.protocol + '//' + location.hostname;
-        // }
-        if(location.hostname.includes('dev')){
-            return "https://data-dev.usanpn.org";
-        }else{
-            return "https://data.usanpn.org";
-        }
+        return environment.POP_SERVER_URL;
     }
 
     public getNpnPortalServerUrl() {
-        // if(location.hostname.includes('local')){
-        //     return location.protocol + '//' + location.hostname;
-        // }
-        
-        if(location.hostname.includes('dev')){
-            return "https://services.usanpn.org";
-        }else{
-            return "https://services.usanpn.org";
-        }
+        return environment.NPN_PORTAL_SERVER_URL;
     }
 
     public getPopUrl() {
-        // if(location.hostname.includes('local')){
-        //     return window.location.origin;
-        // }
-        
-        if(location.hostname.includes('dev')){
-            return window.location.origin + "/observations";
-        }else{
-            return window.location.origin + "/observations";
-        }
+        return window.location.origin + "/observations";
     }
-    
+
     public getPopDownloadEndpoint() {
         return '/popservices/pop/download';
     }
@@ -45,7 +23,7 @@ export class Config {
     public getPopDownloadStatusEndpoint() {
         return '/popservices/pop/downloadstatus';
     }
-    
+
     public getPopSearchEndpoint() {
         return '/popservices/pop/search';
     }
@@ -54,12 +32,17 @@ export class Config {
         return '/popservices/pop/fgdc';
     }
 
-    public getLambdaEndpoint(){
-        return "https://5cpb3wyvskklwikuxndqilxsae0elgst.lambda-url.us-west-2.on.aws/"
+    public getLambdaEndpoint() {
+        return environment.CREATE_REQUEST_URL;
     }
 
-    public getCloudFrontURL(){
-        //return "https://d25lm3wq3t4rxd.cloudfront.net/";
-        return "http://localhost/";
+    public getStatusEndpoint() {
+        return environment.STATUS_REQUEST_URL;
     }
+
+    public getObservationCountUrl() {
+        return environment.OBSERVATION_COUNT_URL;
+    }
+
+
 }
